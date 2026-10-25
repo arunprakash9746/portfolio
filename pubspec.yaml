@@ -1,5 +1,5 @@
 name: my_portfolio
-description: A new Flutter project.
+description: Portfolio of Arun Prakash, data engineer.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -36,6 +36,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   font_awesome_flutter: ^10.4.0
+  google_fonts: ^6.2.1
   url_launcher: ^6.1.11
 
 dev_dependencies:
@@ -62,6 +63,7 @@ flutter:
 
   assets:
     - images/dp.jpeg
+    - images/databricks_de_professional.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

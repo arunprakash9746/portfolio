@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class Pointer extends CustomPainter {
   final double radius;
-  Pointer(this.radius);
+  final Color color;
+  Pointer(this.radius, {this.color = Colors.white});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -10,14 +11,14 @@ class Pointer extends CustomPainter {
       const Offset(0, 0),
       radius,
       Paint()
-        ..color = Colors.white
+        ..color = color
         ..blendMode = BlendMode.difference,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
+  bool shouldRepaint(covariant Pointer oldDelegate) {
+    return oldDelegate.radius != radius || oldDelegate.color != color;
   }
 }
 

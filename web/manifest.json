@@ -1,11 +1,11 @@
 {
-    "name": "my_portfolio",
-    "short_name": "my_portfolio",
+    "name": "Arun Prakash",
+    "short_name": "Arun Prakash",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0C0B09",
+    "theme_color": "#0C0B09",
+    "description": "Data engineer building lakehouse platforms on Azure Databricks and Snowflake.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

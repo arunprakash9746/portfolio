@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:my_portfolio/config/Hovering.dart';
 import 'package:my_portfolio/config/Pointer.dart';
-import 'package:my_portfolio/widgets/dashboard.dart';
+import 'package:my_portfolio/widgets/portfolio_page.dart';
 
 class Mouse extends StatefulWidget {
   const Mouse({super.key});
@@ -29,7 +29,10 @@ class _MouseState extends State<Mouse> with TickerProviderStateMixin {
       },
       child: Stack(
         children: [
-          const Dashboard(),
+          DefaultSelectionStyle.merge(
+            mouseCursor: SystemMouseCursors.none,
+            child: const PortfolioPage(),
+          ),
           AnimatedPointer(
             pointerOffset: pointer!,
             radius: 20,
@@ -70,7 +73,9 @@ class AnimatedPointer extends StatelessWidget {
       top: pointerOffset.dy,
       left: pointerOffset.dx,
       child: CustomPaint(
-        painter: Hovering.hovering ? Pointer(radius) : HoverPointer(radius),
+        painter: Hovering.hovering
+            ? Pointer(radius, color: Hovering.tint)
+            : HoverPointer(radius),
       ),
     );
   }

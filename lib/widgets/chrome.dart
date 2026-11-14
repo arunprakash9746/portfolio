@@ -12,15 +12,16 @@ class PointerTarget extends StatelessWidget {
     super.key,
     required this.child,
     this.onHover,
-    this.accent = false,
+    this.tint,
   });
 
   final Widget child;
   final ValueChanged<bool>? onHover;
 
-  /// Set for targets that are copper (or turn copper on hover). A white
-  /// difference blend turns copper blue; a copper one gives dark-on-copper.
-  final bool accent;
+  /// Color of the hover circle's difference blend. Leave null (white) for
+  /// neutral targets; pass the target's own fill color for colored ones, since
+  /// white over a saturated fill inverts to its complement.
+  final Color? tint;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,7 @@ class PointerTarget extends StatelessWidget {
       cursor: interactiveCursor,
       onEnter: (_) {
         Hovering.hovering = true;
-        Hovering.tint = accent ? AppColors.copper : Colors.white;
+        Hovering.tint = tint ?? Colors.white;
         onHover?.call(true);
       },
       onExit: (_) {
@@ -55,7 +56,7 @@ Future<void> openExternal(BuildContext context, String url) async {
 }
 
 class PageFrame extends StatelessWidget {
-  const PageFrame({super.key, required this.child, this.maxWidth = 1120});
+  const PageFrame({super.key, required this.child, this.maxWidth = 1200});
 
   final Widget child;
   final double maxWidth;
@@ -76,96 +77,215 @@ class PageFrame extends StatelessWidget {
   }
 }
 
-class SectionHeader extends StatelessWidget {
-  const SectionHeader({
+/// Lays children out side by side on wide screens with equal heights, and
+/// stacks them on narrow screens. [flex] pairs with [children] by index.
+class BentoRow extends StatelessWidget {
+  const BentoRow({
     super.key,
-    required this.index,
-    required this.title,
-    this.lede,
+    required this.children,
+    required this.flex,
+    this.stackBelow = Breakpoint.medium,
   });
 
-  final String index;
-  final String title;
-  final String? lede;
+  final List<Widget> children;
+  final List<int> flex;
+  final Breakpoint stackBelow;
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(index, style: AppType.mono(color: AppColors.copper, size: 12)),
-        const SizedBox(height: 10),
-        Text(
-          title,
-          style: AppType.serif(
-            size: width < 720 ? 36 : 48,
-            height: 1.02,
-            letterSpacing: -1.1,
-          ),
-        ),
-        if (lede != null) ...[
-          const SizedBox(height: 14),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
-            child: Text(lede!, style: AppType.sans(size: 16, color: AppColors.muted)),
-          ),
+    final bp = breakpointOf(MediaQuery.sizeOf(context).width);
+    if (bp.index < stackBelow.index) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(height: bentoGap),
+            children[i],
+          ],
         ],
-      ],
+      );
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(width: bentoGap),
+            Expanded(flex: flex[i], child: children[i]),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class AppButton extends StatefulWidget {
-  const AppButton({
+class BentoTile extends StatefulWidget {
+  const BentoTile({
     super.key,
-    required this.label,
-    required this.onPressed,
-    this.filled = false,
+    required this.child,
+    this.padding = const EdgeInsets.all(24),
+    this.onTap,
+    this.color = AppColors.tile,
+    this.gradient,
+    this.borderColor = AppColors.line,
+    this.hoverBorder = AppColors.lineHi,
+    this.clip = false,
+    this.tint,
   });
 
-  final String label;
-  final VoidCallback onPressed;
-  final bool filled;
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final VoidCallback? onTap;
+  final Color color;
+  final Gradient? gradient;
+  final Color borderColor;
+  final Color hoverBorder;
+  final bool clip;
+  final Color? tint;
 
   @override
-  State<AppButton> createState() => _AppButtonState();
+  State<BentoTile> createState() => _BentoTileState();
 }
 
-class _AppButtonState extends State<AppButton> {
+class _BentoTileState extends State<BentoTile> {
   bool _hover = false;
 
   @override
   Widget build(BuildContext context) {
-    final filled = widget.filled;
-    final background = filled
-        ? (_hover ? const Color(0xFFF0B56E) : AppColors.copper)
-        : (_hover ? AppColors.raised : Colors.transparent);
-    final foreground = filled ? AppColors.copperInk : AppColors.ink;
+    final interactive = widget.onTap != null;
+    Widget tile = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      clipBehavior: widget.clip ? Clip.antiAlias : Clip.none,
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        color: widget.color,
+        gradient: widget.gradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: _hover && interactive ? widget.hoverBorder : widget.borderColor,
+        ),
+      ),
+      child: widget.child,
+    );
+
+    if (!interactive) return tile;
+
+    tile = AnimatedScale(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      scale: _hover ? 1.012 : 1,
+      child: tile,
+    );
+    return PointerTarget(
+      tint: widget.tint,
+      onHover: (value) => setState(() => _hover = value),
+      child: GestureDetector(onTap: widget.onTap, child: tile),
+    );
+  }
+}
+
+class TileLabel extends StatelessWidget {
+  const TileLabel(this.text, {super.key, this.color = AppColors.muted});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text.toUpperCase(), style: AppType.mono(size: 11, color: color));
+  }
+}
+
+class SectionTitle extends StatelessWidget {
+  const SectionTitle({super.key, required this.label, required this.title});
+
+  final String label;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final narrow = breakpointOf(MediaQuery.sizeOf(context).width) == Breakpoint.narrow;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20, left: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TileLabel(label, color: AppColors.accent),
+          const SizedBox(height: 10),
+          Text(title, style: AppType.display(size: narrow ? 30 : 40)),
+        ],
+      ),
+    );
+  }
+}
+
+class PillButton extends StatefulWidget {
+  const PillButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.fill,
+    this.foreground,
+    this.icon,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  /// Null draws an outlined button.
+  final Color? fill;
+  final Color? foreground;
+  final IconData? icon;
+
+  @override
+  State<PillButton> createState() => _PillButtonState();
+}
+
+class _PillButtonState extends State<PillButton> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = widget.fill;
+    final fg = widget.foreground ?? (fill == null ? AppColors.ink : AppColors.bg);
+    final background = fill == null
+        ? (_hover ? AppColors.tileHi : Colors.transparent)
+        : Color.lerp(fill, Colors.white, _hover ? 0.12 : 0)!;
 
     return PointerTarget(
-      accent: filled,
+      tint: fill,
       onHover: (value) => setState(() => _hover = value),
       child: GestureDetector(
         onTap: widget.onPressed,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
           decoration: BoxDecoration(
             color: background,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: filled ? background : AppColors.line),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: fill ?? AppColors.lineHi),
           ),
-          child: Text(
-            widget.label,
-            style: AppType.sans(
-              size: 14,
-              weight: FontWeight.w600,
-              color: foreground,
-              height: 1.1,
-              letterSpacing: 0.1,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: 16, color: fg),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  widget.label,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.sans(
+                    size: 14,
+                    weight: FontWeight.w600,
+                    color: fg,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -173,106 +293,30 @@ class _AppButtonState extends State<AppButton> {
   }
 }
 
-class HoverPanel extends StatefulWidget {
-  const HoverPanel({super.key, required this.child, this.onTap});
-
-  final Widget child;
-  final VoidCallback? onTap;
-
-  @override
-  State<HoverPanel> createState() => _HoverPanelState();
-}
-
-class _HoverPanelState extends State<HoverPanel> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return PointerTarget(
-      onHover: (value) => setState(() => _hover = value),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          transform: Matrix4.translationValues(0, _hover ? -3 : 0, 0),
-          transformAlignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.raised,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: _hover ? AppColors.copper : AppColors.line,
-            ),
-          ),
-          child: widget.child,
-        ),
-      ),
-    );
-  }
-}
-
-class Tag extends StatelessWidget {
-  const Tag(this.label, {super.key});
+class Chip2 extends StatelessWidget {
+  const Chip2(this.label, {super.key, this.color = AppColors.body, this.border = AppColors.line});
 
   final String label;
+  final Color color;
+  final Color border;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.line),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border),
       ),
-      child: Text(label, style: AppType.mono(size: 11, letterSpacing: 0.4)),
+      child: Text(label, style: AppType.sans(size: 12.5, color: color, height: 1.2)),
     );
   }
-}
-
-class FadingGrid extends StatelessWidget {
-  const FadingGrid({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0x22E2A15C), Color(0x000C0B09)],
-            stops: [0, 0.72],
-          ),
-        ),
-        child: CustomPaint(painter: _GridPainter(), child: SizedBox.expand()),
-      ),
-    );
-  }
-}
-
-class _GridPainter extends CustomPainter {
-  const _GridPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0x14F6F1E7)
-      ..strokeWidth = 1;
-    const gap = 80.0;
-    for (double x = 0; x <= size.width; x += gap) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y <= size.height; y += gap) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class LiveDot extends StatefulWidget {
-  const LiveDot({super.key});
+  const LiveDot({super.key, this.color = AppColors.signal});
+
+  final Color color;
 
   @override
   State<LiveDot> createState() => _LiveDotState();
@@ -306,12 +350,9 @@ class _LiveDotState extends State<LiveDot> with SingleTickerProviderStateMixin {
     return FadeTransition(
       opacity: Tween<double>(begin: 0.35, end: 1).animate(_controller),
       child: Container(
-        width: 7,
-        height: 7,
-        decoration: const BoxDecoration(
-          color: AppColors.signal,
-          shape: BoxShape.circle,
-        ),
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
       ),
     );
   }

@@ -96,6 +96,46 @@ class Profile {
     ]),
   ];
 
+  static const splitsyPlayStore =
+      'https://play.google.com/store/apps/details?id=in.splitbro.app';
+
+  static const splitsyFeatures = <Feature>[
+    Feature(
+      'Fewest payments',
+      'Debts are simplified greedily, matching the biggest debtor with the biggest creditor, so a group of n settles in at most n − 1 payments.',
+    ),
+    Feature(
+      'Settle with UPI',
+      'One tap opens your UPI app with the payee, amount and note already filled in.',
+    ),
+    Feature(
+      'Invite by link or QR',
+      'Share a join code, link or QR. Deep links open the app, or fall back to the Play Store.',
+    ),
+    Feature(
+      'Insights',
+      'Your share of spending by category, month by month for the last six months.',
+    ),
+    Feature(
+      'Recurring expenses',
+      'Rent and bills post themselves weekly or monthly, so nobody has to remember.',
+    ),
+    Feature(
+      'Export to PDF or CSV',
+      'Hand the whole group ledger to someone in one tap.',
+    ),
+  ];
+
+  static const splitsyStack = <String>[
+    'Flutter',
+    'Supabase',
+    'PostgreSQL',
+    'Row-level security',
+    'Google Sign-In',
+    'go_router',
+    'Provider',
+  ];
+
   static const projects = <SideProject>[
     SideProject(
       'WhatsApp UI clone',
@@ -158,6 +198,12 @@ class SkillGroup {
   final String title;
   final List<String> items;
   const SkillGroup(this.title, this.items);
+}
+
+class Feature {
+  final String title;
+  final String detail;
+  const Feature(this.title, this.detail);
 }
 
 class SideProject {
